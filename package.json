@@ -1,0 +1,44 @@
+{
+  "name": "behaviortree-designer",
+  "version": "0.1.0",
+  "description": "Behavior Tree Designer",
+  "private": true,
+  "publishConfig": {
+    "registry": "https://npm.pkg.github.com"
+  },
+  "scripts": {
+    "prepare": "husky install",
+    "dev": "next dev",
+    "build": "next build",
+    "build:analyze": "cross-env ANALYZE=true npm run build",
+    "start": "next start",
+    "test": "jest --passWithNoTests",
+    "coverage": "jest --coverage",
+    "pre-commit": "lint-staged",
+    "pre-push": "npm test"
+  },
+  "dependencies": {
+    "@italodeandra/pijama": "2.3.0",
+    "@material-ui/core": "npm:@material-ui/core",
+    "dagre": "^0.8.5",
+    "lodash": "npm:lodash",
+    "react-flow-renderer": "^9.6.7",
+    "react-use": "npm:react-use",
+    "valtio": "npm:valtio"
+  },
+  "author": {
+    "name": "Ítalo Andrade",
+    "email": "italodeandra@gmail.com",
+    "url": "https://italodeandra.de"
+  },
+  "engines": {
+    "node": "14.17.1",
+    "npm": "7.18.1"
+  },
+  "cacheDirectories": [
+    ".next/cache"
+  ],
+  "devDependencies": {
+    "@types/dagre": "^0.7.46"
+  }
+}
