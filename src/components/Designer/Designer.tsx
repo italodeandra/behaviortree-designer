@@ -23,6 +23,7 @@ import ReactFlow, {
 import { useUpdateEffect } from "react-use";
 import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
+import sortByEdge from "../../utils/sortByEdge";
 import CustomNodeComponent from "../CustomNodeComponent/CustomNodeComponent";
 import EditNode from "../EditNode/EditNode";
 import Sidebar from "./Sidebar/Sidebar";
@@ -33,6 +34,7 @@ import state, {
   State,
 } from "./state";
 import useCurrentNode from "./useCurrentNode";
+import useUpdateProfile from "./useUpdateProfile";
 
 let elements: Elements = [
   {
@@ -96,7 +98,7 @@ const Designer = () => {
 
     const layoutedElements = cloneDeep(elements);
 
-    layoutedElements.forEach((el) => {
+    layoutedElements.sort(sortByEdge).forEach((el) => {
       if (isNode(el)) {
         dagreGraph.setNode(el.id, { width: 150, height: 50 });
       } else {
@@ -175,6 +177,7 @@ const Designer = () => {
   }, [selectedElement]);
 
   useCurrentNode();
+  useUpdateProfile();
 
   return (
     <Box sx={{ height: "100vh", width: "100%" }}>
@@ -183,7 +186,7 @@ const Designer = () => {
         onElementsRemove={onElementsRemove}
         onConnect={onConnect}
         deleteKeyCode={46} /* 'delete'-key */
-        nodesDraggable={false}
+        nodesDraggable={true}
         onElementClick={handleElementClick}
         onPaneClick={handlePaneClick}
         nodeTypes={{ default: CustomNodeComponent }}

@@ -23,6 +23,16 @@ app.prepare().then(async () => {
     socket.emit("updateCurrentNode", currentNode);
   });
 
+  const rotationFilePath =
+    "C:\\Users\\Italo\\WebstormProjects\\minion_kiko\\kiko\\src\\addons\\Caithe\\bts\\condiDeadeye.ts";
+  if (!fs.existsSync(rotationFilePath)) {
+    fs.writeFileSync(rotationFilePath, "");
+  }
+  fs.watchFile(rotationFilePath, { interval: 1000 }, () => {
+    const profile = fs.readFileSync(rotationFilePath, "utf8");
+    socket.emit("updateProfile", profile);
+  });
+
   server.listen(port, () => {
     console.info(`> Ready on http://localhost:${port}`);
   });

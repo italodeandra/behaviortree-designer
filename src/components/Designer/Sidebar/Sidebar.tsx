@@ -17,8 +17,6 @@ import useCopyToClipboard from "@italodeandra/pijama/hooks/useCopyToClipboard";
 import { Box, Card, MenuItem, Stack, Typography } from "@material-ui/core";
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
-import { format } from "prettier";
-import parserTypeScript from "prettier/parser-typescript";
 import React, { useEffect, useRef, useState } from "react";
 import {
   FlowElement,
@@ -30,18 +28,14 @@ import { Edge } from "react-flow-renderer/dist/types";
 import { useDebounce } from "react-use";
 import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
+import convertStringToElements from "../../../utils/convertStringToElements";
+import prettierFormat from "../../../utils/prettierFormat";
+import sortByEdge from "../../../utils/sortByEdge";
 import state, {
   DEFAULT_ELEMENTS,
   SelectedElementState,
   selectedElementState,
 } from "../state";
-
-function prettierFormat(value: string) {
-  return format(value, {
-    parser: "typescript",
-    plugins: [parserTypeScript],
-  });
-}
 
 const ExportButton = () => {
   const [clipboard, copy] = useCopyToClipboard();
@@ -57,8 +51,9 @@ const ExportButton = () => {
   }, [clipboard]);
 
   const handleClick = () => {
-    const edges = state.value.elements.filter(isEdge);
-    const nodes = state.value.elements.filter(isNode);
+    const elements = state.value.elements.sort(sortByEdge);
+    const edges = elements.filter(isEdge);
+    const nodes = elements.filter(isNode);
 
     const mapNode = (
       e: FlowElement
@@ -155,129 +150,7 @@ const ImportButton = () => {
     try {
       // state.value.elements = JSON.parse(value);
 
-      class Node {
-        id: string;
-        description: string;
-        // noinspection JSMismatchedCollectionQueryUpdate
-        children: Node[] = [];
-
-        constructor(description: string, id: string) {
-          this.description = description;
-          this.id = id;
-        }
-      }
-
-      class Sequence extends Node {
-        constructor(description: string, children: Node[], id: string) {
-          super(description, id);
-          this.children = children;
-        }
-      }
-
-      class Selector extends Node {
-        constructor(description: string, children: Node[], id: string) {
-          super(description, id);
-          this.children = children;
-        }
-      }
-
-      class BehaviorTree extends Selector {}
-
-      class Task extends Node {
-        runFunction: string;
-
-        constructor(
-          description: string,
-          runFunction: () => boolean,
-          id: string
-        ) {
-          super(description, id);
-          // noinspection RegExpRedundantEscape
-          this.runFunction = prettierFormat(
-            /\(\) => \{(?<runFunction>(.)*)}.?/gs.exec(runFunction.toString())
-              ?.groups?.runFunction || ""
-          );
-        }
-      }
-
-      const flowNodes: FlowNode[] = [];
-      const edges: Edge[] = [];
-
-      const convertToElement = (node: Node): FlowNode => {
-        let flowNode: FlowNode;
-        if (node instanceof BehaviorTree) {
-          flowNode = {
-            id: node.id,
-            type: "input",
-            data: {
-              label: node.description,
-            },
-            position: {
-              x: 0,
-              y: 0,
-            },
-          };
-          flowNodes.push(flowNode);
-        } else if (node instanceof Sequence) {
-          flowNode = {
-            id: node.id,
-            data: {
-              label: node.description,
-              type: "sequence",
-            },
-            position: {
-              x: 0,
-              y: 0,
-            },
-          };
-          flowNodes.push(flowNode);
-        } else if (node instanceof Selector) {
-          flowNode = {
-            id: node.id,
-            data: {
-              label: node.description,
-              type: "selector",
-            },
-            position: {
-              x: 0,
-              y: 0,
-            },
-          };
-          flowNodes.push(flowNode);
-        } else if (node instanceof Task) {
-          flowNode = {
-            id: node.id,
-            data: {
-              label: node.description,
-              type: "task",
-              code: node.runFunction,
-            },
-            position: {
-              x: 0,
-              y: 0,
-            },
-          };
-          flowNodes.push(flowNode);
-        } else {
-          throw "Node type not found";
-        }
-
-        for (const child of node.children) {
-          const childFlowNode = convertToElement(child);
-          const edge = {
-            id: uuid(),
-            source: flowNode.id,
-            target: childFlowNode.id,
-          };
-          edges.push(edge);
-        }
-
-        return flowNode;
-      };
-
-      convertToElement(eval(value));
-
-      state.value.elements = [...flowNodes, ...edges];
+      state.value.elements = convertStringToElements(value);
 
       // const bt = /new BehaviorTree\((?<bt>(.)*)\);/gs.exec(value);
       // const btSplit = bt?.groups?.bt.split(",");
