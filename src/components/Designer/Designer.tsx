@@ -5,7 +5,7 @@ import Icon from "@italodeandra/pijama/components/Icon";
 import { Box } from "@material-ui/core";
 import dagre from "dagre";
 import cloneDeep from "lodash/cloneDeep";
-import { MouseEvent as ReactMouseEvent, useMemo, useState } from "react";
+import { MouseEvent as ReactMouseEvent, useMemo, useState, VFC } from "react";
 import ReactFlow, {
   addEdge,
   Background,
@@ -18,12 +18,21 @@ import ReactFlow, {
   Node,
   Position,
   ReactFlowProvider,
-  removeElements,
+  useStoreActions,
 } from "react-flow-renderer";
+import { useUpdateEffect } from "react-use";
 import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
+import CustomNodeComponent from "../CustomNodeComponent/CustomNodeComponent";
+import EditNode from "../EditNode/EditNode";
 import Sidebar from "./Sidebar/Sidebar";
-import state, { selectedElementState, State } from "./state";
+import state, {
+  removeElement,
+  SelectedElementState,
+  selectedElementState,
+  State,
+} from "./state";
+import useCurrentNode from "./useCurrentNode";
 
 let elements: Elements = [
   {
@@ -60,18 +69,23 @@ elements = [
 
 const Designer = () => {
   const { elements } = useSnapshot(state).value as State;
-  const { selectedElement, setSelectedElement } =
-    useSnapshot(selectedElementState);
+  const { selectedElement, setSelectedElement } = useSnapshot(
+    selectedElementState
+  ) as SelectedElementState;
   const onElementsRemove = (elementsToRemove: Elements) => {
-    state.value.elements = removeElements(elementsToRemove, elements);
-    if (elementsToRemove.find((e) => e.id === selectedElement?.id)) {
-      setSelectedElement(null);
-    }
+    elementsToRemove.forEach(removeElement);
   };
   const onConnect = (params: Edge | Connection) => {
     state.value.elements = addEdge(params, state.value.elements);
   };
-  const [direction, setDirection] = useState<"LR" | "TB">("LR");
+  const [direction] = useState<"LR" | "TB">("LR");
+  const addSelectedElements = useStoreActions(
+    (actions) => actions.addSelectedElements
+  );
+  2;
+  const resetSelectedElements = useStoreActions(
+    (actions) => actions.resetSelectedElements
+  );
 
   const layoutedElements = useMemo(() => {
     const isHorizontal = direction === "LR";
@@ -153,27 +167,44 @@ const Designer = () => {
     setSelectedElement(null);
   };
 
+  useUpdateEffect(() => {
+    if (selectedElement) {
+      resetSelectedElements();
+      addSelectedElements([selectedElement]);
+    }
+  }, [selectedElement]);
+
+  useCurrentNode();
+
   return (
     <Box sx={{ height: "100vh", width: "100%" }}>
-      <ReactFlowProvider>
-        <ReactFlow
-          elements={layoutedElements}
-          onElementsRemove={onElementsRemove}
-          onConnect={onConnect}
-          deleteKeyCode={46} /* 'delete'-key */
-          nodesDraggable={false}
-          onElementClick={handleElementClick}
-          onPaneClick={handlePaneClick}
-        >
-          <MiniMap />
-          <Controls />
-          <Background />
-        </ReactFlow>
+      <ReactFlow
+        elements={layoutedElements}
+        onElementsRemove={onElementsRemove}
+        onConnect={onConnect}
+        deleteKeyCode={46} /* 'delete'-key */
+        nodesDraggable={false}
+        onElementClick={handleElementClick}
+        onPaneClick={handlePaneClick}
+        nodeTypes={{ default: CustomNodeComponent }}
+      >
+        <MiniMap />
+        <Controls />
+        <Background />
+      </ReactFlow>
 
-        <Sidebar />
-      </ReactFlowProvider>
+      <Sidebar />
+      {selectedElement && isNode(selectedElement) && <EditNode />}
     </Box>
   );
 };
 
-export default Designer;
+const withProvider = <T extends VFC>(Component: T): T => {
+  return ((props: any) => (
+    <ReactFlowProvider>
+      <Component {...props} />
+    </ReactFlowProvider>
+  )) as unknown as T;
+};
+
+export default withProvider(Designer);

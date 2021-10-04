@@ -1,5 +1,6 @@
 import arrowCircleRight from "@iconify/icons-heroicons-outline/arrow-circle-right";
 import checkCircle from "@iconify/icons-heroicons-outline/check-circle";
+import codeIcon from "@iconify/icons-heroicons-outline/code";
 import questionMarkCircle from "@iconify/icons-heroicons-outline/question-mark-circle";
 import replyIcon from "@iconify/icons-heroicons-outline/reply";
 import saveIcon from "@iconify/icons-heroicons-outline/save";
@@ -16,8 +17,15 @@ import useCopyToClipboard from "@italodeandra/pijama/hooks/useCopyToClipboard";
 import { Box, Card, MenuItem, Stack, Typography } from "@material-ui/core";
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
-import React, { useEffect, useState } from "react";
-import { isNode, Node } from "react-flow-renderer";
+import { format } from "prettier";
+import parserTypeScript from "prettier/parser-typescript";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  FlowElement,
+  isEdge,
+  isNode,
+  Node as FlowNode,
+} from "react-flow-renderer";
 import { Edge } from "react-flow-renderer/dist/types";
 import { useDebounce } from "react-use";
 import { v4 as uuid } from "uuid";
@@ -27,6 +35,13 @@ import state, {
   SelectedElementState,
   selectedElementState,
 } from "../state";
+
+function prettierFormat(value: string) {
+  return format(value, {
+    parser: "typescript",
+    plugins: [parserTypeScript],
+  });
+}
 
 const ExportButton = () => {
   const [clipboard, copy] = useCopyToClipboard();
@@ -42,7 +57,85 @@ const ExportButton = () => {
   }, [clipboard]);
 
   const handleClick = () => {
-    copy(JSON.stringify(state.value.elements, null, 2));
+    const edges = state.value.elements.filter(isEdge);
+    const nodes = state.value.elements.filter(isNode);
+
+    const mapNode = (
+      e: FlowElement
+    ): {
+      type: string;
+      children?: any[];
+      run?: string;
+      description: string;
+      id: string;
+    } => {
+      if (e.id === "BEHAVIOR_TREE") {
+        return {
+          id: e.id,
+          type: "bt",
+          description: e.data.label,
+          children: edges
+            .filter((e) => e.source === "BEHAVIOR_TREE")
+            .map(mapNode),
+        };
+      } else {
+        const node = nodes.find((n) => isEdge(e) && n.id === e.target);
+        if (node?.data?.type === "sequence") {
+          return {
+            id: e.id,
+            type: "sequence",
+            description: node.data.label,
+            children: edges.filter((e) => e.source === node.id).map(mapNode),
+          };
+        } else if (node?.data?.type === "selector") {
+          return {
+            id: e.id,
+            type: "selector",
+            description: node.data.label,
+            children: edges.filter((e) => e.source === node.id).map(mapNode),
+          };
+        } else {
+          return {
+            id: e.id,
+            type: "task",
+            description: node?.data.label || "",
+            run: node?.data?.code || "return false",
+          };
+        }
+      }
+    };
+
+    const behaviorTree = mapNode(
+      nodes.find((e) => e.id === "BEHAVIOR_TREE") as FlowNode
+    );
+
+    const toString = (obj: any) => {
+      const description = obj.description
+        ? obj.description.replace(/"/g, '\\"')
+        : "";
+
+      switch (obj.type) {
+        case "bt":
+          return `new BehaviorTree("${description}", [${obj.children
+            .map(toString)
+            .join(",")}], "${obj.id}")`;
+        case "selector":
+          return `new Selector("${description}", [${obj.children
+            .map(toString)
+            .join(",")}], "${obj.id}")`;
+        case "sequence":
+          return `new Sequence("${description}", [${obj.children
+            .map(toString)
+            .join(",")}], "${obj.id}")`;
+        default:
+          return `new Task("${description}", () => {${obj.run}}, "${obj.id}")`;
+      }
+    };
+
+    // const json = JSON.stringify(state.value.elements, null, 2);
+    const formattedString = prettierFormat(`${toString(behaviorTree)}`);
+
+    copy(formattedString);
   };
 
   return (
@@ -60,7 +153,157 @@ const ImportButton = () => {
   const handleClick = async () => {
     const value = await navigator.clipboard.readText();
     try {
-      state.value.elements = JSON.parse(value);
+      // state.value.elements = JSON.parse(value);
+
+      class Node {
+        id: string;
+        description: string;
+        // noinspection JSMismatchedCollectionQueryUpdate
+        children: Node[] = [];
+
+        constructor(description: string, id: string) {
+          this.description = description;
+          this.id = id;
+        }
+      }
+
+      class Sequence extends Node {
+        constructor(description: string, children: Node[], id: string) {
+          super(description, id);
+          this.children = children;
+        }
+      }
+
+      class Selector extends Node {
+        constructor(description: string, children: Node[], id: string) {
+          super(description, id);
+          this.children = children;
+        }
+      }
+
+      class BehaviorTree extends Selector {}
+
+      class Task extends Node {
+        runFunction: string;
+
+        constructor(
+          description: string,
+          runFunction: () => boolean,
+          id: string
+        ) {
+          super(description, id);
+          // noinspection RegExpRedundantEscape
+          this.runFunction = prettierFormat(
+            /\(\) => \{(?<runFunction>(.)*)}.?/gs.exec(runFunction.toString())
+              ?.groups?.runFunction || ""
+          );
+        }
+      }
+
+      const flowNodes: FlowNode[] = [];
+      const edges: Edge[] = [];
+
+      const convertToElement = (node: Node): FlowNode => {
+        let flowNode: FlowNode;
+        if (node instanceof BehaviorTree) {
+          flowNode = {
+            id: node.id,
+            type: "input",
+            data: {
+              label: node.description,
+            },
+            position: {
+              x: 0,
+              y: 0,
+            },
+          };
+          flowNodes.push(flowNode);
+        } else if (node instanceof Sequence) {
+          flowNode = {
+            id: node.id,
+            data: {
+              label: node.description,
+              type: "sequence",
+            },
+            position: {
+              x: 0,
+              y: 0,
+            },
+          };
+          flowNodes.push(flowNode);
+        } else if (node instanceof Selector) {
+          flowNode = {
+            id: node.id,
+            data: {
+              label: node.description,
+              type: "selector",
+            },
+            position: {
+              x: 0,
+              y: 0,
+            },
+          };
+          flowNodes.push(flowNode);
+        } else if (node instanceof Task) {
+          flowNode = {
+            id: node.id,
+            data: {
+              label: node.description,
+              type: "task",
+              code: node.runFunction,
+            },
+            position: {
+              x: 0,
+              y: 0,
+            },
+          };
+          flowNodes.push(flowNode);
+        } else {
+          throw "Node type not found";
+        }
+
+        for (const child of node.children) {
+          const childFlowNode = convertToElement(child);
+          const edge = {
+            id: uuid(),
+            source: flowNode.id,
+            target: childFlowNode.id,
+          };
+          edges.push(edge);
+        }
+
+        return flowNode;
+      };
+
+      convertToElement(eval(value));
+
+      state.value.elements = [...flowNodes, ...edges];
+
+      // const bt = /new BehaviorTree\((?<bt>(.)*)\);/gs.exec(value);
+      // const btSplit = bt?.groups?.bt.split(",");
+      // const btName = JSON.parse(btSplit?.shift());
+      // const btChildren = btSplit.join(",");
+      // console.log({ btName, btChildren });
+      /*new BehaviorTree("Behavior Tree", [
+    new Selector("Player state", [
+      new Sequence("Player is alive", [
+        new Task("Is player alive?", () => {
+          return player.isAlive();
+        }),
+        new Task('Print "player is alive"', () => {
+          d("alive");
+          return true;
+        }),
+      ]),
+      new Sequence("Player is dead", [
+        new Task('Print "player is dead"', () => {
+          d("dead");
+          return true;
+        }),
+      ]),
+    ]),
+  ]);*/
+
       const notification = notify("Imported flow from clipboard");
       setTimeout(() => removeNotification(notification), 3000);
     } catch (e) {
@@ -137,7 +380,8 @@ const RedoButton = () => {
 };
 
 const Sidebar = () => {
-  const { selectedElement } = useSnapshot(
+  const labelRef = useRef<HTMLInputElement>(null);
+  const { selectedElement, setSelectedElement } = useSnapshot(
     selectedElementState
   ) as SelectedElementState;
 
@@ -162,7 +406,7 @@ const Sidebar = () => {
   );
 
   const addNode = (type: string) => {
-    const newNode: Node = {
+    const newNode: FlowNode = {
       id: uuid(),
       position: { x: 0, y: 0 },
       data: { label: `New ${type}`, type },
@@ -175,6 +419,12 @@ const Sidebar = () => {
 
     state.value.elements.push(newNode);
     state.value.elements.push(connection);
+
+    setSelectedElement(newNode.id);
+    labelRef.current?.focus();
+    setTimeout(() => {
+      labelRef.current?.select();
+    });
   };
 
   const renameNode = (value: string) => {
@@ -200,6 +450,10 @@ const Sidebar = () => {
         selectedElementState.selectedElement.data.type = value;
       }
     }
+  };
+
+  const handleEditCodeClick = () => {
+    selectedElementState.editing = true;
   };
 
   return (
@@ -231,6 +485,7 @@ const Sidebar = () => {
                 </Typography>
               </Typography>
               <TextField
+                ref={labelRef}
                 value={label}
                 onChange={({ target: { value } }) => renameNode(value)}
               />
@@ -251,57 +506,76 @@ const Sidebar = () => {
                 )}
             </Box>
             {selectedElement.data?.type &&
-              selectedElement.data.type !== "task" && (
-                <>
-                  <Typography variant={"subtitle2"} sx={{ mt: 1 }}>
-                    Add new children
-                  </Typography>
-                  <Stack spacing={1} sx={{ mt: 0.5 }}>
-                    <Button
-                      color={"inherit"}
-                      variant={"outlined"}
-                      onClick={() => addNode("sequence")}
-                      startIcon={
-                        <Icon
-                          icon={arrowCircleRight}
-                          sx={{ float: "left" }}
-                          fontSize={"small"}
-                        />
-                      }
-                    >
-                      Sequence
-                    </Button>
-                    <Button
-                      color={"inherit"}
-                      variant={"outlined"}
-                      onClick={() => addNode("selector")}
-                      startIcon={
-                        <Icon
-                          icon={questionMarkCircle}
-                          sx={{ float: "left" }}
-                          fontSize={"small"}
-                        />
-                      }
-                    >
-                      Selector
-                    </Button>
-                    <Button
-                      color={"inherit"}
-                      variant={"outlined"}
-                      onClick={() => addNode("task")}
-                      startIcon={
-                        <Icon
-                          icon={checkCircle}
-                          sx={{ float: "left" }}
-                          fontSize={"small"}
-                        />
-                      }
-                    >
-                      Task
-                    </Button>
-                  </Stack>
-                </>
+              selectedElement.data.type === "task" && (
+                <Button
+                  color={"inherit"}
+                  onClick={handleEditCodeClick}
+                  startIcon={
+                    <Icon
+                      icon={codeIcon}
+                      sx={{ float: "left" }}
+                      fontSize={"small"}
+                    />
+                  }
+                  fullWidth
+                  sx={{ mt: 1 }}
+                >
+                  Edit code
+                </Button>
               )}
+            {((selectedElement.data?.type &&
+              selectedElement.data.type !== "task") ||
+              selectedElement.id === "BEHAVIOR_TREE") && (
+              <>
+                <Typography variant={"subtitle2"} sx={{ mt: 1 }}>
+                  Add new children
+                </Typography>
+                <Stack spacing={1} sx={{ mt: 0.5 }}>
+                  <Button
+                    color={"inherit"}
+                    variant={"outlined"}
+                    onClick={() => addNode("sequence")}
+                    startIcon={
+                      <Icon
+                        icon={arrowCircleRight}
+                        sx={{ float: "left" }}
+                        fontSize={"small"}
+                      />
+                    }
+                  >
+                    Sequence
+                  </Button>
+                  <Button
+                    color={"inherit"}
+                    variant={"outlined"}
+                    onClick={() => addNode("selector")}
+                    startIcon={
+                      <Icon
+                        icon={questionMarkCircle}
+                        sx={{ float: "left" }}
+                        fontSize={"small"}
+                      />
+                    }
+                  >
+                    Selector
+                  </Button>
+                  <Button
+                    color={"inherit"}
+                    variant={"outlined"}
+                    onClick={() => addNode("task")}
+                    startIcon={
+                      <Icon
+                        icon={checkCircle}
+                        sx={{ float: "left" }}
+                        fontSize={"small"}
+                      />
+                    }
+                  >
+                    Task
+                  </Button>
+                </Stack>
+              </>
+            )}
           </>
         </Card>
       )}

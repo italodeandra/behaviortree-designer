@@ -8,10 +8,10 @@
   },
   "scripts": {
     "prepare": "husky install",
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "nodemon",
+    "build": "next build && tsc --project tsconfig.server.json",
     "build:analyze": "cross-env ANALYZE=true npm run build",
-    "start": "next start",
+    "start": "cross-env NODE_ENV=production node dist/server/index.js",
     "test": "jest --passWithNoTests",
     "coverage": "jest --coverage",
     "pre-commit": "lint-staged",
@@ -20,8 +20,11 @@
   "dependencies": {
     "@italodeandra/pijama": "2.3.0",
     "@material-ui/core": "npm:@material-ui/core",
+    "@monaco-editor/react": "4.3.1",
     "dagre": "^0.8.5",
     "lodash": "npm:lodash",
+    "monaco-editor": "0.28.1",
+    "raw-loader": "^4.0.2",
     "react-flow-renderer": "^9.6.7",
     "react-use": "npm:react-use",
     "valtio": "npm:valtio"
