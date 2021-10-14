@@ -1,6 +1,8 @@
 import arrowCircleRight from "@iconify/icons-heroicons-outline/arrow-circle-right";
 import checkCircle from "@iconify/icons-heroicons-outline/check-circle";
 import codeIcon from "@iconify/icons-heroicons-outline/code";
+import linkIcon from "@iconify/icons-heroicons-outline/link";
+import puzzleIcon from "@iconify/icons-heroicons-outline/puzzle";
 import questionMarkCircle from "@iconify/icons-heroicons-outline/question-mark-circle";
 import replyIcon from "@iconify/icons-heroicons-outline/reply";
 import saveIcon from "@iconify/icons-heroicons-outline/save";
@@ -17,7 +19,7 @@ import useCopyToClipboard from "@italodeandra/pijama/hooks/useCopyToClipboard";
 import { Box, Card, MenuItem, Stack, Typography } from "@material-ui/core";
 import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   FlowElement,
   isEdge,
@@ -28,6 +30,7 @@ import { Edge } from "react-flow-renderer/dist/types";
 import { useDebounce } from "react-use";
 import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
+import NodeType from "../../types/NodeType";
 import convertStringToElements from "../../utils/convertStringToElements";
 import prettierFormat from "../../utils/prettierFormat";
 import sortByEdge from "../../utils/sortByEdge";
@@ -56,44 +59,59 @@ const ExportButton = () => {
     const nodes = elements.filter(isNode);
 
     const mapNode = (
-      e: FlowElement
+      el: FlowElement
     ): {
-      type: string;
+      type: NodeType;
       children?: any[];
       run?: string;
       description: string;
+      subtreeLink?: string;
       id: string;
     } => {
-      if (e.id === "BEHAVIOR_TREE") {
+      if (el.id === "BEHAVIOR_TREE") {
         return {
-          id: e.id,
-          type: "bt",
-          description: e.data.label,
+          id: el.id,
+          type: NodeType.BT,
+          description: el.data.label,
           children: edges
             .filter((e) => e.source === "BEHAVIOR_TREE")
             .map(mapNode),
         };
+      } else if (el?.data?.type === NodeType.Subtree) {
+        return {
+          id: el.id,
+          type: NodeType.Subtree,
+          description: el?.data.label || "",
+          children: edges.filter((e) => e.source === el.id).map(mapNode),
+        };
       } else {
-        const node = nodes.find((n) => isEdge(e) && n.id === e.target);
-        if (node?.data?.type === "sequence") {
+        const node = nodes.find((n) => isEdge(el) && n.id === el.target);
+        if (node && node.data?.type === NodeType.Sequence) {
           return {
-            id: e.id,
-            type: "sequence",
+            id: el.id,
+            type: NodeType.Sequence,
             description: node.data.label,
             children: edges.filter((e) => e.source === node.id).map(mapNode),
           };
-        } else if (node?.data?.type === "selector") {
+        } else if (node && node.data?.type === NodeType.Selector) {
           return {
-            id: e.id,
-            type: "selector",
+            id: el.id,
+            type: NodeType.Selector,
             description: node.data.label,
             children: edges.filter((e) => e.source === node.id).map(mapNode),
+          };
+        } else if (node && node.data?.type === NodeType.SubtreeLink) {
+          return {
+            id: el.id,
+            type: NodeType.SubtreeLink,
+            description: node.data.label || "",
+            subtreeLink: node.data?.subtreeLink,
           };
         } else {
           return {
-            id: e.id,
-            type: "task",
-            description: node?.data.label || "",
+            id: el.id,
+            type: NodeType.Task,
+            description: node?.data?.label || "",
             run: node?.data?.code || "return false",
           };
         }
@@ -104,31 +122,47 @@ const ExportButton = () => {
       nodes.find((e) => e.id === "BEHAVIOR_TREE") as FlowNode
     );
 
-    const toString = (obj: any) => {
+    const subtrees = nodes
+      .filter((node) => node.data?.type === NodeType.Subtree)
+      .map((node) => mapNode(node as FlowNode));
+
+    const toString = (obj: any, subtreesString?: string) => {
       const description = obj.description
         ? obj.description.replace(/"/g, '\\"')
         : "";
 
       switch (obj.type) {
-        case "bt":
+        case NodeType.BT:
           return `new BehaviorTree("${description}", [${obj.children
             .map(toString)
+            .join(",")}], ${subtreesString}, "${obj.id}")`;
+        case NodeType.Subtree:
+          return `new Subtree("${description}", [${obj.children
+            .map(toString)
             .join(",")}], "${obj.id}")`;
-        case "selector":
+        case NodeType.Selector:
           return `new Selector("${description}", [${obj.children
             .map(toString)
             .join(",")}], "${obj.id}")`;
-        case "sequence":
+        case NodeType.Sequence:
           return `new Sequence("${description}", [${obj.children
             .map(toString)
             .join(",")}], "${obj.id}")`;
+        case NodeType.SubtreeLink:
+          return `new SubtreeLink("${description}", "${obj.subtreeLink}", "${obj.id}")`;
         default:
           return `new Task("${description}", () => {${obj.run}}, "${obj.id}")`;
       }
     };
 
+    const subtreesString = subtrees.length
+      ? `[${subtrees.map((subtree) => toString(subtree))}]`
+      : "[]";
+
     // const json = JSON.stringify(state.value.elements, null, 2);
-    const formattedString = prettierFormat(`${toString(behaviorTree)}`);
+    const formattedString = prettierFormat(
+      `return ${toString(behaviorTree, subtreesString)}`
+    );
 
     copy(formattedString);
   };
@@ -148,7 +182,10 @@ const ImportButton = () => {
   const handleClick = async () => {
     const value = await navigator.clipboard.readText();
     try {
-      state.value.elements = convertStringToElements(value);
+      const bt = /return (?<bt>(.)*\);)/gs.exec(value)?.groups?.bt;
+      if (bt) {
+        state.value.elements = convertStringToElements(bt);
+      }
 
       const notification = notify("Imported flow from clipboard");
       setTimeout(() => removeNotification(notification), 3000);
@@ -246,6 +283,9 @@ const Sidebar = () => {
   const { selectedElement, setSelectedElement } = useSnapshot(
     selectedElementState
   ) as SelectedElementState;
+  const {
+    value: { elements },
+  } = useSnapshot(state);
 
   const getLabel = () =>
     selectedElement?.data?.label ||
@@ -267,20 +307,40 @@ const Sidebar = () => {
     [label]
   );
 
-  const addNode = (type: string) => {
+  const addNode = (type: NodeType) => {
     const newNode: FlowNode = {
       id: uuid(),
       position: { x: 0, y: 0 },
       data: { label: `New ${type}`, type },
     };
-    const connection: Edge = {
-      id: uuid(),
-      source: selectedElement!.id,
-      target: newNode.id,
-    };
 
     state.value.elements.push(newNode);
-    state.value.elements.push(connection);
+
+    if (type === NodeType.Subtree) {
+      const newNodeSubtreeLink: FlowNode = {
+        id: uuid(),
+        position: { x: 0, y: 0 },
+        data: {
+          label: `New ${NodeType.SubtreeLink}`,
+          type: NodeType.SubtreeLink,
+          subtreeLink: newNode.id,
+        },
+      };
+      state.value.elements.push(newNodeSubtreeLink);
+      const connection: Edge = {
+        id: uuid(),
+        source: selectedElement!.id,
+        target: newNodeSubtreeLink.id,
+      };
+      state.value.elements.push(connection);
+    } else {
+      const connection: Edge = {
+        id: uuid(),
+        source: selectedElement!.id,
+        target: newNode.id,
+      };
+      state.value.elements.push(connection);
+    }
 
     setSelectedElement(newNode.id);
     labelRef.current?.focus();
@@ -306,7 +366,7 @@ const Sidebar = () => {
     }
   };
 
-  const changeNodeType = (value: string) => {
+  const changeNodeType = (value: NodeType) => {
     if (selectedElementState.selectedElement) {
       if (isNode(selectedElementState.selectedElement)) {
         selectedElementState.selectedElement.data.type = value;
@@ -314,9 +374,22 @@ const Sidebar = () => {
     }
   };
 
+  const changeSubtreeLink = (value: string) => {
+    if (selectedElementState.selectedElement) {
+      selectedElementState.selectedElement.data.label =
+        subtrees.find((s) => s.id === value)?.data.label || "";
+      selectedElementState.selectedElement.data.subtreeLink = value;
+    }
+  };
+
   const handleEditCodeClick = () => {
     selectedElementState.editing = true;
   };
+
+  const subtrees = useMemo(
+    () => elements.filter((el) => el.data?.type === NodeType.Subtree),
+    [elements]
+  );
 
   return (
     <Box
@@ -355,21 +428,42 @@ const Sidebar = () => {
                 selectedElement.id !== "BEHAVIOR_TREE" && (
                   <TextField
                     label={"Type"}
-                    value={selectedElement?.data?.type || ""}
-                    onChange={({ target: { value } }) => changeNodeType(value)}
+                    value={selectedElement?.data?.type || NodeType.Task}
+                    onChange={({ target: { value } }) =>
+                      changeNodeType(value as NodeType)
+                    }
                     select
                     sx={{ mt: 1 }}
                     size={"small"}
                   >
-                    <MenuItem value={"subtree"}>Subtree</MenuItem>
-                    <MenuItem value={"sequence"}>Sequence</MenuItem>
-                    <MenuItem value={"selector"}>Selector</MenuItem>
-                    <MenuItem value={"task"}>Task</MenuItem>
+                    <MenuItem value={NodeType.Sequence}>Sequence</MenuItem>
+                    <MenuItem value={NodeType.Selector}>Selector</MenuItem>
+                    <MenuItem value={NodeType.Task}>Task</MenuItem>
+                    <MenuItem value={NodeType.Subtree}>Subtree</MenuItem>
+                    <MenuItem value={NodeType.SubtreeLink}>
+                      Link Subtree
+                    </MenuItem>
                   </TextField>
                 )}
+              {selectedElement?.data?.type === NodeType.SubtreeLink && (
+                <TextField
+                  label={"Subtree Link"}
+                  value={selectedElement.data.subtreeLink || ""}
+                  onChange={({ target: { value } }) => changeSubtreeLink(value)}
+                  select
+                  sx={{ mt: 1 }}
+                  size={"small"}
+                >
+                  {subtrees.map((subtree) => (
+                    <MenuItem key={subtree.id} value={subtree.id}>
+                      {subtree.data?.label}
+                    </MenuItem>
+                  ))}
+                </TextField>
+              )}
             </Box>
             {selectedElement.data?.type &&
-              selectedElement.data.type === "task" && (
+              selectedElement.data.type === NodeType.Task && (
                 <Button
                   color={"inherit"}
                   onClick={handleEditCodeClick}
@@ -387,7 +481,7 @@ const Sidebar = () => {
                 </Button>
               )}
             {((selectedElement.data?.type &&
-              selectedElement.data.type !== "task") ||
+              selectedElement.data.type !== NodeType.Task) ||
               selectedElement.id === "BEHAVIOR_TREE") && (
               <>
                 <Typography variant={"subtitle2"} sx={{ mt: 1 }}>
@@ -397,7 +491,7 @@ const Sidebar = () => {
                   <Button
                     color={"inherit"}
                     variant={"outlined"}
-                    onClick={() => addNode("sequence")}
+                    onClick={() => addNode(NodeType.Sequence)}
                     startIcon={
                       <Icon
                         icon={arrowCircleRight}
@@ -411,7 +505,7 @@ const Sidebar = () => {
                   <Button
                     color={"inherit"}
                     variant={"outlined"}
-                    onClick={() => addNode("selector")}
+                    onClick={() => addNode(NodeType.Selector)}
                     startIcon={
                       <Icon
                         icon={questionMarkCircle}
@@ -425,7 +519,7 @@ const Sidebar = () => {
                   <Button
                     color={"inherit"}
                     variant={"outlined"}
-                    onClick={() => addNode("task")}
+                    onClick={() => addNode(NodeType.Task)}
                     startIcon={
                       <Icon
                         icon={checkCircle}
@@ -435,6 +529,34 @@ const Sidebar = () => {
                     }
                   >
                     Task
+                  </Button>
+                  <Button
+                    color={"inherit"}
+                    variant={"outlined"}
+                    onClick={() => addNode(NodeType.Subtree)}
+                    startIcon={
+                      <Icon
+                        icon={puzzleIcon}
+                        sx={{ float: "left" }}
+                        fontSize={"small"}
+                      />
+                    }
+                  >
+                    Subtree
+                  </Button>
+                  <Button
+                    color={"inherit"}
+                    variant={"outlined"}
+                    onClick={() => addNode(NodeType.SubtreeLink)}
+                    startIcon={
+                      <Icon
+                        icon={linkIcon}
+                        sx={{ float: "left" }}
+                        fontSize={"small"}
+                      />
+                    }
+                  >
+                    Subtree Link
                   </Button>
                 </Stack>
               </>

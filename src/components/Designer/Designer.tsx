@@ -1,5 +1,8 @@
 import arrowCircleRight from "@iconify/icons-heroicons-outline/arrow-circle-right";
 import checkCircle from "@iconify/icons-heroicons-outline/check-circle";
+import linkIcon from "@iconify/icons-heroicons-outline/link";
+import playIcon from "@iconify/icons-heroicons-outline/play";
+import puzzleIcon from "@iconify/icons-heroicons-outline/puzzle";
 import questionMarkCircle from "@iconify/icons-heroicons-outline/question-mark-circle";
 import Icon from "@italodeandra/pijama/components/Icon";
 import { Box } from "@material-ui/core";
@@ -119,36 +122,33 @@ const Designer = () => {
           x: nodeWithPosition.x + Math.random() / 1000,
           y: nodeWithPosition.y,
         };
-        el.type = el.data.type === "Designer" ? "output" : el.type;
+        el.type = el.data.type === "subtree" ? "input" : el.type;
+        el.type = el.data.type === "subtree-link" ? "output" : el.type;
+        let icon: any = null;
+        if (el.type === "input") {
+          if (el.data.type === "subtree") {
+            icon = puzzleIcon;
+          } else {
+            icon = playIcon;
+          }
+        }
         if (el.data.type === "sequence") {
-          el.data.label = (
-            <>
-              <Icon
-                icon={arrowCircleRight}
-                sx={{ float: "left", mr: 0.5 }}
-                fontSize={"small"}
-              />
-              {el.data.label}
-            </>
-          );
+          icon = arrowCircleRight;
         }
         if (el.data.type === "selector") {
-          el.data.label = (
-            <>
-              <Icon
-                icon={questionMarkCircle}
-                sx={{ float: "left", mr: 0.5 }}
-                fontSize={"small"}
-              />
-              {el.data.label}
-            </>
-          );
+          icon = questionMarkCircle;
         }
         if (el.data.type === "task") {
+          icon = checkCircle;
+        }
+        if (el.data.type === "subtree-link") {
+          icon = linkIcon;
+        }
+        if (icon) {
           el.data.label = (
             <>
               <Icon
-                icon={checkCircle}
+                icon={icon}
                 sx={{ float: "left", mr: 0.5 }}
                 fontSize={"small"}
               />
@@ -183,6 +183,9 @@ const Designer = () => {
   return (
     <Box sx={{ height: "100vh", width: "100%" }}>
       <ReactFlow
+        onLoad={(reactFlowInstance) => {
+          reactFlowInstance.fitView();
+        }}
         elements={layoutedElements}
         onElementsRemove={onElementsRemove}
         onConnect={onConnect}

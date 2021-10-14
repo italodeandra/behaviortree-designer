@@ -3,6 +3,9 @@ import { v4 as uuid } from "uuid";
 import prettierFormat from "./prettierFormat";
 
 export default function convertStringToElements(value: string) {
+  const flowNodes: FlowNode[] = [];
+  const edges: Edge[] = [];
+
   class Node {
     id: string;
     description: string;
@@ -29,7 +32,30 @@ export default function convertStringToElements(value: string) {
     }
   }
 
-  class BehaviorTree extends Selector {}
+  class Subtree extends Selector {}
+
+  class SubtreeLink extends Node {
+    subtreeLink: string;
+
+    constructor(description: string, subtreeLink: string, id: string) {
+      super(description, id);
+      this.subtreeLink = subtreeLink;
+    }
+  }
+
+  class BehaviorTree extends Selector {
+    constructor(
+      description: string,
+      children: Node[],
+      subtrees: Subtree[],
+      id: string
+    ) {
+      super(description, children, id);
+      for (const subtree of subtrees) {
+        convertToElement(subtree);
+      }
+    }
+  }
 
   class Task extends Node {
     runFunction: string;
@@ -44,9 +70,6 @@ export default function convertStringToElements(value: string) {
     }
   }
 
-  const flowNodes: FlowNode[] = [];
-  const edges: Edge[] = [];
-
   const convertToElement = (node: Node): FlowNode => {
     let flowNode: FlowNode;
     if (node instanceof BehaviorTree) {
@@ -55,6 +78,33 @@ export default function convertStringToElements(value: string) {
         type: "input",
         data: {
           label: node.description,
+        },
+        position: {
+          x: 0,
+          y: 0,
+        },
+      };
+      flowNodes.push(flowNode);
+    } else if (node instanceof Subtree) {
+      flowNode = {
+        id: node.id,
+        data: {
+          type: "subtree",
+          label: node.description,
+        },
+        position: {
+          x: 0,
+          y: 0,
+        },
+      };
+      flowNodes.push(flowNode);
+    } else if (node instanceof SubtreeLink) {
+      flowNode = {
+        id: node.id,
+        data: {
+          label: node.description,
+          type: "subtree-link",
+          subtreeLink: node.subtreeLink,
         },
         position: {
           x: 0,
@@ -121,7 +171,12 @@ export default function convertStringToElements(value: string) {
     return flowNode;
   };
 
-  convertToElement(eval(value));
+  try {
+    convertToElement(eval(value));
+  } catch (e) {
+    console.error(e);
+    throw Error("Invalid string");
+  }
 
   return [...flowNodes, ...edges];
 }
