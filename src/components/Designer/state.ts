@@ -41,6 +41,7 @@ export function removeElement(elementToRemove: Node | Edge) {
 export interface SelectedElementState {
   selectedElement: Node | null;
   editing: boolean;
+  editingBT: boolean;
 
   setSelectedElement(elementId: ElementId | null): void;
 }
@@ -48,6 +49,7 @@ export interface SelectedElementState {
 export const selectedElementState = proxy<SelectedElementState>({
   selectedElement: null,
   editing: false,
+  editingBT: false,
   setSelectedElement(elementId) {
     selectedElementState.selectedElement = elementId
       ? (state.value.elements.find((e) => e.id === elementId) as Node)

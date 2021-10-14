@@ -28,14 +28,14 @@ import { Edge } from "react-flow-renderer/dist/types";
 import { useDebounce } from "react-use";
 import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
-import convertStringToElements from "../../../utils/convertStringToElements";
-import prettierFormat from "../../../utils/prettierFormat";
-import sortByEdge from "../../../utils/sortByEdge";
+import convertStringToElements from "../../utils/convertStringToElements";
+import prettierFormat from "../../utils/prettierFormat";
+import sortByEdge from "../../utils/sortByEdge";
 import state, {
   DEFAULT_ELEMENTS,
   SelectedElementState,
   selectedElementState,
-} from "../state";
+} from "../Designer/state";
 
 const ExportButton = () => {
   const [clipboard, copy] = useCopyToClipboard();
@@ -148,34 +148,7 @@ const ImportButton = () => {
   const handleClick = async () => {
     const value = await navigator.clipboard.readText();
     try {
-      // state.value.elements = JSON.parse(value);
-
       state.value.elements = convertStringToElements(value);
-
-      // const bt = /new BehaviorTree\((?<bt>(.)*)\);/gs.exec(value);
-      // const btSplit = bt?.groups?.bt.split(",");
-      // const btName = JSON.parse(btSplit?.shift());
-      // const btChildren = btSplit.join(",");
-      // console.log({ btName, btChildren });
-      /*new BehaviorTree("Behavior Tree", [
-    new Selector("Player state", [
-      new Sequence("Player is alive", [
-        new Task("Is player alive?", () => {
-          return player.isAlive();
-        }),
-        new Task('Print "player is alive"', () => {
-          d("alive");
-          return true;
-        }),
-      ]),
-      new Sequence("Player is dead", [
-        new Task('Print "player is dead"', () => {
-          d("dead");
-          return true;
-        }),
-      ]),
-    ]),
-  ]);*/
 
       const notification = notify("Imported flow from clipboard");
       setTimeout(() => removeNotification(notification), 3000);
@@ -248,6 +221,22 @@ const RedoButton = () => {
       disabled={!canRedo()}
     >
       Redo
+    </Button>
+  );
+};
+
+const EditCode = () => {
+  const handleClick = () => {
+    selectedElementState.editingBT = true;
+  };
+
+  return (
+    <Button
+      startIcon={<Icon icon={codeIcon} />}
+      color={"inherit"}
+      onClick={handleClick}
+    >
+      Code
     </Button>
   );
 };
@@ -372,6 +361,7 @@ const Sidebar = () => {
                     sx={{ mt: 1 }}
                     size={"small"}
                   >
+                    <MenuItem value={"subtree"}>Subtree</MenuItem>
                     <MenuItem value={"sequence"}>Sequence</MenuItem>
                     <MenuItem value={"selector"}>Selector</MenuItem>
                     <MenuItem value={"task"}>Task</MenuItem>
@@ -459,6 +449,7 @@ const Sidebar = () => {
           <UndoButton />
           <RedoButton />
           <ClearButton />
+          <EditCode />
         </Stack>
       </Card>
     </Box>

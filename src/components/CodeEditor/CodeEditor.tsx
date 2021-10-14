@@ -6,7 +6,8 @@ const CodeEditor: VFC<{
   value?: string;
   onChange: (value?: string) => void;
   autocomplete?: any;
-}> = ({ value, onChange, autocomplete }) => {
+  defaultLanguage?: string;
+}> = ({ value, onChange, autocomplete, defaultLanguage = "javascript" }) => {
   const [monacoRef, setMonacoRef] = useState<Monaco>();
 
   useEffect(() => {
@@ -18,7 +19,7 @@ const CodeEditor: VFC<{
   return (
     <Editor
       height={"calc(100vh - 200px)"}
-      defaultLanguage="javascript"
+      defaultLanguage={defaultLanguage}
       value={value || ""}
       onChange={onChange}
       theme="vs-dark"

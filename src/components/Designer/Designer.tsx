@@ -25,8 +25,9 @@ import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
 import sortByEdge from "../../utils/sortByEdge";
 import CustomNodeComponent from "../CustomNodeComponent/CustomNodeComponent";
+import EditBTCode from "../EditBTCode/EditBTCode";
 import EditNode from "../EditNode/EditNode";
-import Sidebar from "./Sidebar/Sidebar";
+import Sidebar from "../Sidebar/Sidebar";
 import state, {
   removeElement,
   SelectedElementState,
@@ -198,6 +199,7 @@ const Designer = () => {
 
       <Sidebar />
       {selectedElement && isNode(selectedElement) && <EditNode />}
+      <EditBTCode />
     </Box>
   );
 };
