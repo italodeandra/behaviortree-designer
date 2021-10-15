@@ -88,7 +88,7 @@ const Designer = () => {
   const addSelectedElements = useStoreActions(
     (actions) => actions.addSelectedElements
   );
-  2;
+
   const resetSelectedElements = useStoreActions(
     (actions) => actions.resetSelectedElements
   );
