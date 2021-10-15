@@ -27,7 +27,8 @@
     "raw-loader": "^4.0.2",
     "react-flow-renderer": "^9.6.7",
     "react-use": "npm:react-use",
-    "valtio": "npm:valtio"
+    "valtio": "npm:valtio",
+    "@iconify/icons-heroicons-outline": "npm:@iconify/icons-heroicons-outline"
   },
   "author": {
     "name": "Ítalo Andrade",
