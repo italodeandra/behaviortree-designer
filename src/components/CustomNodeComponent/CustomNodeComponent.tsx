@@ -3,7 +3,7 @@ import { Box } from "@material-ui/core";
 import React, { memo } from "react";
 import { Handle, NodeProps, Position } from "react-flow-renderer";
 import { useSnapshot } from "valtio";
-import { currentNodeState, selectedElementState } from "../Designer/state";
+import { currentNodePathState, selectedElementState } from "../Designer/state";
 import NodeMenu from "../NodeMenu/NodeMenu";
 
 const CustomNodeComponent = ({
@@ -14,7 +14,7 @@ const CustomNodeComponent = ({
   sourcePosition = Position.Bottom,
 }: NodeProps) => {
   const { selectedElement } = useSnapshot(selectedElementState);
-  const { currentNode } = useSnapshot(currentNodeState);
+  const { currentNodePath } = useSnapshot(currentNodePathState);
 
   const handleDoubleClick = () => {
     if (selectedElement?.data?.type && selectedElement.data.type === "task") {
@@ -32,7 +32,7 @@ const CustomNodeComponent = ({
       <NodeMenu>
         <Box
           onDoubleClick={handleDoubleClick}
-          sx={{ color: id === currentNode ? Green.N500 : undefined }}
+          sx={{ color: currentNodePath.includes(id) ? Green.N500 : undefined }}
         >
           {data.label}
         </Box>

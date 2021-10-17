@@ -1,11 +1,11 @@
 import socket from "@italodeandra/pijama/api/socket";
 import { useEffect } from "react";
-import { currentNodeState } from "./state";
+import { currentNodePathState } from "./state";
 
-const useCurrentNode = () => {
+const useCurrentNodePath = () => {
   useEffect(() => {
     const handleUpdateCurrentNode = (value: string) => {
-      currentNodeState.currentNode = value;
+      currentNodePathState.currentNodePath = value.split(",");
     };
     socket.on("updateCurrentNode", handleUpdateCurrentNode);
     return () => {
@@ -14,4 +14,4 @@ const useCurrentNode = () => {
   }, []);
 };
 
-export default useCurrentNode;
+export default useCurrentNodePath;

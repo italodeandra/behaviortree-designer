@@ -37,7 +37,7 @@ import state, {
   selectedElementState,
   State,
 } from "./state";
-import useCurrentNode from "./useCurrentNode";
+import useCurrentNodePath from "./useCurrentNodePath";
 import useUpdateProfile from "./useUpdateProfile";
 
 let elements: Elements = [
@@ -177,7 +177,7 @@ const Designer = () => {
     }
   }, [selectedElement]);
 
-  useCurrentNode();
+  useCurrentNodePath();
   useUpdateProfile();
 
   return (

@@ -84,8 +84,8 @@ if (isBrowser) {
 
 export default state;
 
-export const currentNodeState = proxy<{
-  currentNode: string | null;
+export const currentNodePathState = proxy<{
+  currentNodePath: string[];
 }>({
-  currentNode: null,
+  currentNodePath: [],
 });
