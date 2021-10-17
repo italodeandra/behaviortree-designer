@@ -16,6 +16,7 @@ import ReactFlow, {
   Controls,
   Edge,
   Elements,
+  isEdge,
   isNode,
   MiniMap,
   Node,
@@ -32,6 +33,7 @@ import EditBTCode from "../EditBTCode/EditBTCode";
 import EditNode from "../EditNode/EditNode";
 import Sidebar from "../Sidebar/Sidebar";
 import state, {
+  currentNodePathState,
   removeElement,
   SelectedElementState,
   selectedElementState,
@@ -78,6 +80,7 @@ const Designer = () => {
   const { selectedElement, setSelectedElement } = useSnapshot(
     selectedElementState
   ) as SelectedElementState;
+  const { currentNodePath } = useSnapshot(currentNodePathState);
   const onElementsRemove = (elementsToRemove: Elements) => {
     elementsToRemove.forEach(removeElement);
   };
@@ -114,6 +117,8 @@ const Designer = () => {
 
     return layoutedElements.map((el) => {
       if (isNode(el)) {
+        el.data.active = currentNodePath.includes(el.id);
+
         const nodeWithPosition = dagreGraph.node(el.id);
         el.targetPosition = isHorizontal ? Position.Left : Position.Top;
         el.sourcePosition = isHorizontal ? Position.Right : Position.Bottom;
@@ -157,10 +162,13 @@ const Designer = () => {
           );
         }
       }
+      if (isEdge(el)) {
+        el.animated = currentNodePath.includes(el.target);
+      }
 
       return el;
     });
-  }, [direction, elements]);
+  }, [direction, elements, currentNodePath]);
 
   const handleElementClick = (event: ReactMouseEvent, element: Node | Edge) => {
     setSelectedElement(element.id);
@@ -193,7 +201,10 @@ const Designer = () => {
         nodesDraggable={true}
         onElementClick={handleElementClick}
         onPaneClick={handlePaneClick}
-        nodeTypes={{ default: CustomNodeComponent }}
+        nodeTypes={{
+          default: CustomNodeComponent,
+          output: CustomNodeComponent,
+        }}
       >
         <MiniMap />
         <Controls />

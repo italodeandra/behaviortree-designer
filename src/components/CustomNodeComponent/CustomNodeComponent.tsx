@@ -3,18 +3,18 @@ import { Box } from "@material-ui/core";
 import React, { memo } from "react";
 import { Handle, NodeProps, Position } from "react-flow-renderer";
 import { useSnapshot } from "valtio";
-import { currentNodePathState, selectedElementState } from "../Designer/state";
+import { selectedElementState } from "../Designer/state";
 import NodeMenu from "../NodeMenu/NodeMenu";
 
 const CustomNodeComponent = ({
-  id,
   data,
   isConnectable,
   targetPosition = Position.Top,
   sourcePosition = Position.Bottom,
+  selected,
+  type,
 }: NodeProps) => {
   const { selectedElement } = useSnapshot(selectedElementState);
-  const { currentNodePath } = useSnapshot(currentNodePathState);
 
   const handleDoubleClick = () => {
     if (selectedElement?.data?.type && selectedElement.data.type === "task") {
@@ -32,16 +32,21 @@ const CustomNodeComponent = ({
       <NodeMenu>
         <Box
           onDoubleClick={handleDoubleClick}
-          sx={{ color: currentNodePath.includes(id) ? Green.N500 : undefined }}
+          sx={{
+            color: data.active ? Green.N500 : undefined,
+            fontWeight: selected ? 700 : undefined,
+          }}
         >
           {data.label}
         </Box>
       </NodeMenu>
-      <Handle
-        type="source"
-        position={sourcePosition}
-        isConnectable={isConnectable}
-      />
+      {type === "default" && (
+        <Handle
+          type="source"
+          position={sourcePosition}
+          isConnectable={isConnectable}
+        />
+      )}
     </>
   );
 };
