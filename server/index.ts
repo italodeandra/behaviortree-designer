@@ -24,7 +24,7 @@ app.prepare().then(async () => {
   });
 
   const rotationFilePath =
-    "C:\\Users\\Italo\\WebstormProjects\\minion_kiko\\kiko\\src\\addons\\Caithe\\bts\\condiDeadeye.ts";
+    "C:\\Users\\Italo\\WebstormProjects\\minion_kiko\\kiko\\src\\addons\\Zojja\\bts\\condiWeaver.ts";
   if (!fs.existsSync(rotationFilePath)) {
     fs.writeFileSync(rotationFilePath, "");
   }
