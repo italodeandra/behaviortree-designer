@@ -6,7 +6,7 @@ import {
 } from "@italodeandra/pijama/components/Snackbar/snackbarState";
 import React from "react";
 import convertStringToElements from "../../../utils/convertStringToElements";
-import state from "../../Designer/state";
+import state from "../../../state";
 import uploadIcon from "@iconify/icons-heroicons-outline/upload";
 
 const ImportButton = () => {

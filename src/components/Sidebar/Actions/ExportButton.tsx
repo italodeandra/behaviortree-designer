@@ -15,7 +15,7 @@ import {
 import NodeType from "../../../types/NodeType";
 import prettierFormat from "../../../utils/prettierFormat";
 import sortByEdge from "../../../utils/sortByEdge";
-import state from "../../Designer/state";
+import state from "../../../state";
 import saveIcon from "@iconify/icons-heroicons-outline/save";
 
 const ExportButton = () => {

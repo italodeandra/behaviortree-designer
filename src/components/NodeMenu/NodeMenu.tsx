@@ -2,7 +2,7 @@ import { Menu, MenuItem } from "@material-ui/core";
 import { bindContextMenu, bindMenu } from "material-ui-popup-state";
 import { usePopupState } from "material-ui-popup-state/hooks";
 import { cloneElement, ReactElement, VFC } from "react";
-import { removeElement, selectedElementState } from "../Designer/state";
+import { removeElement, selectedElementState } from "../../state";
 
 export interface ArchiveButtonProps {
   children: ReactElement;

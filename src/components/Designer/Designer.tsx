@@ -8,7 +8,13 @@ import Icon from "@italodeandra/pijama/components/Icon";
 import { Box } from "@material-ui/core";
 import dagre from "dagre";
 import cloneDeep from "lodash/cloneDeep";
-import { MouseEvent as ReactMouseEvent, useMemo, useState, VFC } from "react";
+import {
+  MouseEvent as ReactMouseEvent,
+  useMemo,
+  useRef,
+  useState,
+  VFC,
+} from "react";
 import ReactFlow, {
   addEdge,
   Background,
@@ -24,21 +30,22 @@ import ReactFlow, {
   ReactFlowProvider,
   useStoreActions,
 } from "react-flow-renderer";
+import { OnLoadParams } from "react-flow-renderer/dist/types";
 import { useUpdateEffect } from "react-use";
 import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
-import sortByEdge from "../../utils/sortByEdge";
-import CustomNodeComponent from "../CustomNodeComponent/CustomNodeComponent";
-import EditBTCode from "../EditBTCode/EditBTCode";
-import EditNode from "../EditNode/EditNode";
-import Sidebar from "../Sidebar/Sidebar";
 import state, {
   currentNodePathState,
   removeElement,
   SelectedElementState,
   selectedElementState,
   State,
-} from "./state";
+} from "../../state";
+import sortByEdge from "../../utils/sortByEdge";
+import CustomNodeComponent from "../CustomNodeComponent/CustomNodeComponent";
+import EditBTCode from "../EditBTCode/EditBTCode";
+import EditNode from "../EditNode/EditNode";
+import Sidebar from "../Sidebar/Sidebar";
 import useCurrentNodePath from "./useCurrentNodePath";
 import useUpdateProfile from "./useUpdateProfile";
 
@@ -76,11 +83,13 @@ elements = [
 ];
 
 const Designer = () => {
+  const reactFlowInstanceRef = useRef<OnLoadParams>();
   const { elements } = useSnapshot(state).value as State;
   const { selectedElement, setSelectedElement } = useSnapshot(
-    selectedElementState
+    selectedElementState,
+    { sync: true }
   ) as SelectedElementState;
-  const { currentNodePath } = useSnapshot(currentNodePathState);
+  const { currentNodePath } = useSnapshot(currentNodePathState, { sync: true });
   const onElementsRemove = (elementsToRemove: Elements) => {
     elementsToRemove.forEach(removeElement);
   };
@@ -192,6 +201,7 @@ const Designer = () => {
     <Box sx={{ height: "100vh", width: "100%" }}>
       <ReactFlow
         onLoad={(reactFlowInstance) => {
+          reactFlowInstanceRef.current = reactFlowInstance;
           reactFlowInstance.fitView();
         }}
         elements={layoutedElements}

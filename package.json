@@ -18,14 +18,13 @@
     "pre-push": "npm test"
   },
   "dependencies": {
-    "@italodeandra/pijama": "2.3.1",
-    "@material-ui/core": "npm:@material-ui/core",
+    "@italodeandra/pijama": "2.4.6",
     "@monaco-editor/react": "4.3.1",
-    "dagre": "^0.8.5",
-    "lodash": "npm:lodash",
+    "dagre": "0.8.5",
     "monaco-editor": "0.28.1",
-    "raw-loader": "^4.0.2",
-    "react-flow-renderer": "^9.6.7",
+    "react-flow-renderer": "9.6.7",
+    "@material-ui/core": "npm:@material-ui/core",
+    "lodash": "npm:lodash",
     "react-use": "npm:react-use",
     "valtio": "npm:valtio",
     "@iconify/icons-heroicons-outline": "npm:@iconify/icons-heroicons-outline"
@@ -34,10 +33,6 @@
     "name": "Ítalo Andrade",
     "email": "italodeandra@gmail.com",
     "url": "https://italodeandra.de"
-  },
-  "engines": {
-    "node": "14.17.1",
-    "npm": "7.18.1"
   },
   "cacheDirectories": [
     ".next/cache"

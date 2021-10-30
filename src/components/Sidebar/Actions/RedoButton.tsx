@@ -3,7 +3,7 @@ import Button from "@italodeandra/pijama/components/Button";
 import Icon from "@italodeandra/pijama/components/Icon";
 import React from "react";
 import { useSnapshot } from "valtio";
-import state from "../../Designer/state";
+import state from "../../../state";
 
 const RedoButton = () => {
   const { canRedo } = useSnapshot(state);

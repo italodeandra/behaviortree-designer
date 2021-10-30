@@ -2,7 +2,7 @@ import socket from "@italodeandra/pijama/api/socket";
 import { notify } from "@italodeandra/pijama/components/Snackbar/snackbarState";
 import { useEffect } from "react";
 import convertStringToElements from "../../utils/convertStringToElements";
-import state from "./state";
+import state from "../../state";
 
 const useUpdateProfile = () => {
   useEffect(() => {

@@ -5,7 +5,7 @@ import cloneDeep from "lodash/cloneDeep";
 import isEqual from "lodash/isEqual";
 import React from "react";
 import { useSnapshot } from "valtio";
-import state, { DEFAULT_ELEMENTS } from "../../Designer/state";
+import state, { DEFAULT_ELEMENTS } from "../../../state";
 
 const ClearButton = () => {
   const { elements } = useSnapshot(state).value;

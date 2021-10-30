@@ -2,7 +2,7 @@ import codeIcon from "@iconify/icons-heroicons-outline/code";
 import Button from "@italodeandra/pijama/components/Button";
 import Icon from "@italodeandra/pijama/components/Icon";
 import React from "react";
-import { selectedElementState } from "../../Designer/state";
+import { selectedElementState } from "../../../state";
 
 const EditCodeButton = () => {
   const handleClick = () => {

@@ -4,7 +4,7 @@ import { FlowElement, isEdge, isNode } from "react-flow-renderer";
 import { Edge } from "react-flow-renderer/dist/types";
 import { useKey } from "react-use";
 import { v4 as uuid } from "uuid";
-import state, { selectedElementState } from "../Designer/state";
+import state, { selectedElementState } from "../../state";
 
 const useKeyboardShortcuts = () => {
   const { selectedElement } = selectedElementState;

@@ -7,7 +7,14 @@ import questionMarkCircle from "@iconify/icons-heroicons-outline/question-mark-c
 import Button from "@italodeandra/pijama/components/Button";
 import Icon from "@italodeandra/pijama/components/Icon";
 import TextField from "@italodeandra/pijama/components/TextField";
-import { Box, Card, MenuItem, Stack, Typography } from "@material-ui/core";
+import {
+  Box,
+  Card,
+  InputAdornment,
+  MenuItem,
+  Stack,
+  Typography,
+} from "@material-ui/core";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { isNode, Node as FlowNode } from "react-flow-renderer";
 import { Edge } from "react-flow-renderer/dist/types";
@@ -16,9 +23,10 @@ import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
 import NodeType from "../../types/NodeType";
 import state, {
+  searchState,
   SelectedElementState,
   selectedElementState,
-} from "../Designer/state";
+} from "../../state";
 import ClearButton from "./Actions/ClearButton";
 import EditCodeButton from "./Actions/EditCodeButton";
 import ExportButton from "./Actions/ExportButton";
@@ -26,6 +34,7 @@ import ImportButton from "./Actions/ImportButton";
 import RedoButton from "./Actions/RedoButton";
 import UndoButton from "./Actions/UndoButton";
 import useKeyboardShortcuts from "./useKeyboardShortcuts";
+import searchIcon from "@iconify/icons-heroicons-outline/search";
 
 const Sidebar = () => {
   const labelRef = useRef<HTMLInputElement>(null);
@@ -35,6 +44,7 @@ const Sidebar = () => {
   const {
     value: { elements },
   } = useSnapshot(state) as typeof state;
+  const { setSearch, search } = useSnapshot(searchState, { sync: true });
 
   const getLabel = () =>
     selectedElement?.data?.label ||
@@ -315,6 +325,29 @@ const Sidebar = () => {
           </>
         </Card>
       )}
+      <Card
+        sx={{
+          p: 1,
+          mb: 1,
+          ml: "auto",
+          width: 8 * 30,
+          pointerEvents: "initial",
+        }}
+      >
+        <Stack spacing={1}>
+          <TextField
+            value={search}
+            onChange={({ target: { value } }) => setSearch(value)}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start" sx={{ pointerEvents: "none" }}>
+                  <Icon icon={searchIcon} fontSize={"small"} />
+                </InputAdornment>
+              ),
+            }}
+          />
+        </Stack>
+      </Card>
       <Card sx={{ p: 1, ml: "auto", width: 8 * 15, pointerEvents: "initial" }}>
         <Stack spacing={1}>
           <ExportButton />

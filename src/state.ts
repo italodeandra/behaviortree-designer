@@ -7,7 +7,7 @@ import {
   Node,
   removeElements,
 } from "react-flow-renderer";
-import { proxy, subscribe } from "valtio";
+import { proxy, ref, subscribe } from "valtio";
 import { proxyWithHistory } from "valtio/utils";
 
 export interface State {
@@ -26,6 +26,8 @@ export const DEFAULT_ELEMENTS = [
 const state = proxyWithHistory<State>({
   elements: cloneDeep(DEFAULT_ELEMENTS),
 });
+
+export default state;
 
 export function removeElement(elementToRemove: Node | Edge) {
   const { selectedElement, setSelectedElement } = selectedElementState;
@@ -82,10 +84,26 @@ if (isBrowser) {
   }
 }
 
-export default state;
-
 export const currentNodePathState = proxy<{
   currentNodePath: string[];
 }>({
   currentNodePath: [],
+});
+
+export const searchState = proxy({
+  search: "",
+  debouncedSearch: "",
+  debouncedSearchTimer: ref({
+    timer: null as number | null,
+  }),
+
+  setSearch(value: string) {
+    searchState.search = value;
+    if (searchState.debouncedSearchTimer.timer) {
+      window.clearTimeout(searchState.debouncedSearchTimer.timer);
+    }
+    searchState.debouncedSearchTimer.timer = window.setTimeout(() => {
+      searchState.debouncedSearch = value;
+    }, 1000);
+  },
 });

@@ -1,6 +1,6 @@
 import socket from "@italodeandra/pijama/api/socket";
 import { useEffect } from "react";
-import { currentNodePathState } from "./state";
+import { currentNodePathState } from "../../state";
 
 const useCurrentNodePath = () => {
   useEffect(() => {

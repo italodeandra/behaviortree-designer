@@ -9,7 +9,7 @@ import {
 import { useEffect, useState } from "react";
 import { useSnapshot } from "valtio";
 import CodeEditor from "../CodeEditor/CodeEditor";
-import state, { selectedElementState } from "../Designer/state";
+import state, { selectedElementState } from "../../state";
 
 const EditBTCode = () => {
   const { editingBT } = useSnapshot(selectedElementState);
