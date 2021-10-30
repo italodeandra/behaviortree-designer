@@ -107,3 +107,17 @@ export const searchState = proxy({
     }, 1000);
   },
 });
+
+export const fileState = proxy({
+  text: null as string | null,
+  name: null as string | null,
+  async setFile(file: File) {
+    fileState.text = await file.text();
+    fileState.name = file.name;
+    return fileState;
+  },
+  clear() {
+    fileState.text = null;
+    fileState.name = null;
+  },
+});

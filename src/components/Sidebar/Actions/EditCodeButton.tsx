@@ -15,7 +15,7 @@ const EditCodeButton = () => {
       color={"inherit"}
       onClick={handleClick}
     >
-      Code
+      JSON
     </Button>
   );
 };

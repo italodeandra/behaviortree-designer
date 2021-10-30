@@ -47,7 +47,6 @@ import EditBTCode from "../EditBTCode/EditBTCode";
 import EditNode from "../EditNode/EditNode";
 import Sidebar from "../Sidebar/Sidebar";
 import useCurrentNodePath from "./useCurrentNodePath";
-import useUpdateProfile from "./useUpdateProfile";
 
 let elements: Elements = [
   {
@@ -195,7 +194,6 @@ const Designer = () => {
   }, [selectedElement]);
 
   useCurrentNodePath();
-  useUpdateProfile();
 
   return (
     <Box sx={{ height: "100vh", width: "100%" }}>

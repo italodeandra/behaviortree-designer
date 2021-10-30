@@ -23,6 +23,7 @@ import { v4 as uuid } from "uuid";
 import { useSnapshot } from "valtio";
 import NodeType from "../../types/NodeType";
 import state, {
+  fileState,
   searchState,
   SelectedElementState,
   selectedElementState,
@@ -32,9 +33,11 @@ import EditCodeButton from "./Actions/EditCodeButton";
 import ExportButton from "./Actions/ExportButton";
 import ImportButton from "./Actions/ImportButton";
 import RedoButton from "./Actions/RedoButton";
+import SaveFileButton from "./Actions/SaveFileButton";
 import UndoButton from "./Actions/UndoButton";
 import useKeyboardShortcuts from "./useKeyboardShortcuts";
 import searchIcon from "@iconify/icons-heroicons-outline/search";
+import OpenFileButton from "./Actions/OpenFileButton";
 
 const Sidebar = () => {
   const labelRef = useRef<HTMLInputElement>(null);
@@ -45,6 +48,7 @@ const Sidebar = () => {
     value: { elements },
   } = useSnapshot(state) as typeof state;
   const { setSearch, search } = useSnapshot(searchState, { sync: true });
+  const fileSnap = useSnapshot(fileState);
 
   const getLabel = () =>
     selectedElement?.data?.label ||
@@ -356,6 +360,14 @@ const Sidebar = () => {
           <RedoButton />
           <ClearButton />
           <EditCodeButton />
+          {!fileSnap.name && <OpenFileButton />}
+
+          {fileSnap.name && (
+            <>
+              <SaveFileButton />
+              <Typography variant={"caption"}>{fileSnap.name}</Typography>
+            </>
+          )}
         </Stack>
       </Card>
     </Box>
